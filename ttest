@@ -1,0 +1,195 @@
+```{r}
+library(readxl)
+library(tidyverse)
+library(dplyr)
+```
+```{r}
+getwd()
+```
+```{r}
+UT <- read_excel("UT_test.xlsx")
+NY <- read_excel("NY_test.xlsx")
+TX <- read_excel("TX_test.xlsx")
+CA <- read_excel("CA_test.xlsx")
+FL <- read_excel("FL_test.xlsx")
+IA <- read_excel("IA_test.xlsx")
+GA <- read_excel("GA_test.xlsx")
+WI <- read_excel("WI_test.xlsx")
+NC <- read_excel("NC_test.xlsx")
+MA <- read_excel("MA_test.xlsx")
+AL <- read_excel("AL_test.xlsx")
+```
+```{r}
+State <- CA
+```
+1. Doordash
+```{r}
+beforePeak <- State$Peak == 0
+afterPeak <- State$Peak == 1
+a1 <- State[beforePeak, "DoorDash"]
+a2 <- State[afterPeak, "DoorDash"]
+```
+```{r}
+a1 <- unlist(a1)
+a2 <- unlist(a2)
+```
+```{r}
+var.test(a1, a2)
+```
+```{r}
+t.test(a1, a2, var.equal = FALSE)
+```
+2. UberEats
+```{r}
+beforePeak <- State$Peak == 0
+afterPeak <- State$Peak == 1
+a1 <- State[beforePeak, "UberEats"]
+a2 <- State[afterPeak, "UberEats"]
+```
+```{r}
+a1 <- unlist(a1)
+a2 <- unlist(a2)
+```
+```{r}
+var.test(a1, a2)
+```
+```{r}
+t.test(a1, a2, var.equal = FALSE)
+```
+3.Grubhub
+```{r}
+beforePeak <- State$Peak == 0
+afterPeak <- State$Peak == 1
+a1 <- State[beforePeak, "Grubhub"]
+a2 <- State[afterPeak, "Grubhub"]
+```
+```{r}
+a1 <- unlist(a1)
+a2 <- unlist(a2)
+```
+```{r}
+var.test(a1, a2)
+```
+```{r}
+t.test(a1, a2, var.equal = FALSE)
+```
+4. Postmates
+```{r}
+beforePeak <- State$Peak == 0
+afterPeak <- State$Peak == 1
+a1 <- State[beforePeak, "Postmates"]
+a2 <- State[afterPeak, "Postmates"]
+```
+```{r}
+a1 <- unlist(a1)
+a2 <- unlist(a2)
+```
+```{r}
+var.test(a1, a2)
+```
+```{r}
+t.test(a1, a2, var.equal = FALSE)
+```
+5.Instacart
+```{r}
+beforePeak <- State$Peak == 0
+afterPeak <- State$Peak == 1
+a1 <- State[beforePeak, "Instacart"]
+a2 <- State[afterPeak, "Instacart"]
+```
+```{r}
+a1 <- unlist(a1)
+a2 <- unlist(a2)
+```
+```{r}
+var.test(a1, a2)
+```
+```{r}
+t.test(a1, a2, var.equal = FALSE)
+```
+6. Chownow
+```{r}
+beforePeak <- State$Peak == 0
+afterPeak <- State$Peak == 1
+a1 <- State[beforePeak, "Chownow"]
+a2 <- State[afterPeak, "Chownow"]
+```
+```{r}
+a1 <- unlist(a1)
+a2 <- unlist(a2)
+```
+```{r}
+var.test(a1, a2)
+```
+```{r}
+t.test(a1, a2, var.equal = FALSE)
+```
+7.Seamless
+```{r}
+beforePeak <- State$Peak == 0
+afterPeak <- State$Peak == 1
+a1 <- State[beforePeak, "Seamless"]
+a2 <- State[afterPeak, "Seamless"]
+```
+```{r}
+a1 <- unlist(a1)
+a2 <- unlist(a2)
+```
+```{r}
+var.test(a1, a2)
+```
+```{r}
+t.test(a1, a2, var.equal = FALSE)
+```
+8.FreshDirect
+```{r}
+beforePeak <- State$Peak == 0
+afterPeak <- State$Peak == 1
+a1 <- State[beforePeak, "FreshDirect"]
+a2 <- State[afterPeak, "FreshDirect"]
+```
+```{r}
+a1 <- unlist(a1)
+a2 <- unlist(a2)
+```
+```{r}
+var.test(a1, a2)
+```
+```{r}
+t.test(a1, a2, var.equal = FALSE)
+```
+9. AmazonFresh
+```{r}
+beforePeak <- State$Peak == 0
+afterPeak <- State$Peak == 1
+a1 <- State[beforePeak, "AmazonFresh"]
+a2 <- State[afterPeak, "AmazonFresh"]
+```
+```{r}
+a1 <- unlist(a1)
+a2 <- unlist(a2)
+```
+```{r}
+var.test(a1, a2)
+```
+```{r}
+t.test(a1, a2, var.equal = FALSE)
+```
+10. Shipt
+```{r}
+beforePeak <- State$Peak == 0
+afterPeak <- State$Peak == 1
+a1 <- State[beforePeak, "Shipt"]
+a2 <- State[afterPeak, "Shipt"]
+```
+```{r}
+a1 <- unlist(a1)
+a2 <- unlist(a2)
+```
+```{r}
+var.test(a1, a2)
+```
+```{r}
+t.test(a1, a2, var.equal = FALSE)
+```
+```{r}
