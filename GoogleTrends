@@ -1,0 +1,100 @@
+from pytrends.request import TrendReq
+import pytrends as pt
+import xlrd
+import pandas as pd
+from threading import Event
+timer = Event()
+
+#pytrends = TrendReq(hl='en-US', tz=360)
+
+pytrends = TrendReq()
+
+
+kw_list = ["DoorDash", "Uber Eats", "Grubhub", "Postmates", "Instacart"]
+kw_list2 = ["Chownow", "Seamless", "FreshDirect", "Amazon Fresh", "Shipt"]
+
+kw_total = ["DoorDash", "Uber Eats", "Grubhub", "Postmates", "Instacart",
+            "Chownow", "Seamless", "FreshDirect", "Amazon Fresh", "Shipt"]
+
+
+all_states = pd.read_excel('us_states.xlsx')
+
+state = 'US-' + all_states.loc[:,'ABBREVIATION']
+
+dict_dfs = {}
+
+i='US-AL'
+j='DoorDash'
+
+for i in state:
+    for j in kw_list:
+        try:
+            timer.wait(0.5)
+            pytrends.build_payload([j], cat=0, timeframe='2020-02-16 2020-12-31', geo=i, gprop='')
+            interest_ot = pytrends.interest_over_time().iloc[:,0:1]
+            this_col_name = i+" "+interest_ot.columns
+            interest_ot.columns = this_col_name
+            this_key = i+j
+            dict_dfs[this_key] = interest_ot
+        except:
+            this_error = i+" "+j
+            print("error with "+this_error)
+            timer.wait(1)
+
+big_df = pd.concat(dict_dfs, axis=1)
+
+cols_big_df = []
+for i in state:
+    this_cols = [j+" "+i for j in kw_list]
+    cols_big_df.append(this_cols)
+    
+cols_big_df_flat = [item for sublist in cols_big_df for item in sublist]
+
+big_df.columns = cols_big_df_flat
+#big_df_2020 = big_df.loc['2020',:]
+
+
+
+i='US-AL'
+j='DoorDash'
+
+for i in state:
+    for j in kw_list:
+        try:
+            timer.wait(0.5)
+            pytrends.build_payload([j], cat=0, timeframe='2020-02-16 2020-12-31', geo=i, gprop='')
+            interest_ot = pytrends.interest_over_time().iloc[:,0:1]
+            this_col_name = i+" "+interest_ot.columns
+            interest_ot.columns = this_col_name
+            this_key = i+j
+            dict_dfs[this_key] = interest_ot
+        except:
+            this_error = i+" "+j
+            print("error with "+this_error)
+            timer.wait(1)
+
+big_df = pd.concat(dict_dfs, axis=1)
+
+cols_big_df = []
+for i in state:
+    this_cols = [j+" "+i for j in kw_total]
+    cols_big_df.append(this_cols)
+    
+cols_big_df_flat = [item for sublist in cols_big_df for item in sublist]
+
+big_df.columns = cols_big_df_flat
+big_df_2020 = big_df.loc['2020',:]
+big_df_2020.to_excel('google_trends_data.xlsx')
+
+
+big_df_2020.iloc[:,12].plot.hist(bins=6)
+
+
+
+
+#graph state level for interest in the 10 companies
+big_df.index.name = None
+fig, ax = plt.subplots()
+big_df.plot(ax=ax)
+ax.legend(["DoorDash", "Uber Eats", "Postmates", "Instacart", "Chownow", "Seamless", "FreshDirect",
+           "Amazon Fresh", "Shipt"])
