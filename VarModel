@@ -1,0 +1,298 @@
+#vector autoregression implementation Python
+
+
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+%matplotlib qt
+import seaborn as sns
+
+# Import Statsmodels
+from statsmodels.tsa.api import VAR
+from statsmodels.tsa.stattools import adfuller
+from statsmodels.tools.eval_measures import rmse, aic
+from statsmodels.tsa.stattools import grangercausalitytests
+from statsmodels.tsa.vector_ar.vecm import coint_johansen
+from statsmodels.stats.stattools import durbin_watson
+
+
+df = pd.read_excel('US_hg_2.xlsx', index_col=0)
+
+df_1 = pd.read_excel('AL.xlsx')
+df_2 = pd.read_excel('CA.xlsx')
+df_3 = pd.read_excel('FL.xlsx')
+df_4 = pd.read_excel('GA.xlsx')
+
+these_vars = ['DoorDash', 'UberEats', 'Grubhub', 'Instacart',
+              'Retail_Recreation', 'Grocery_Pharmacy', 'Cases', 'Death']
+
+#these_vars2 = ['Doordash', 'UberEats', 'Grubhub', 'Instacart', 'AmazonFresh', 'Shipt',
+#               'Retail And Recreation', 'Grocery And Pharmacy']
+
+df2 = df.loc[:,these_vars]
+
+#plotting the timeseries
+
+fig, axes = plt.subplots(nrows=4, ncols=2, dpi=120, figsize=(10,6))
+for i, ax in enumerate(axes.flatten()):
+    data = df2[df2.columns[i]]
+    ax.plot(data, color='red', linewidth=1)
+    # Decorations
+    ax.set_title(df2.columns[i])
+    ax.xaxis.set_ticks_position('none')
+    ax.yaxis.set_ticks_position('none')
+    ax.spines["top"].set_alpha(0)
+    ax.tick_params(labelsize=6)
+
+plt.tight_layout();
+
+
+#looking at the granger causation
+
+maxlag=8
+test = 'ssr_chi2test'
+def grangers_causation_matrix(data, variables, test='ssr_chi2test', verbose=False):
+    df = pd.DataFrame(np.zeros((len(variables), len(variables))), columns=variables, index=variables)
+    for c in df.columns:
+        for r in df.index:
+            test_result = grangercausalitytests(data[[r, c]], maxlag=maxlag, verbose=False)
+            p_values = [round(test_result[i+1][0][test][1],4) for i in range(maxlag)]
+            if verbose: print(f'Y = {r}, X = {c}, P Values = {p_values}')
+            min_p_value = np.min(p_values)
+            df.loc[r, c] = min_p_value
+    df.columns = [var + '_x' for var in variables]
+    df.index = [var + '_y' for var in variables]
+    return df
+
+granger_caus = grangers_causation_matrix(df2, variables = df2.columns).round(3)
+plt.matshow(granger_caus)
+plt.show()
+
+plt.figure(figsize=(20,20))
+sns.set(font_scale=0.8)
+ax = sns.heatmap(
+    granger_caus,
+    vmin=0, vmax=1, center=0.1,
+    cmap=sns.diverging_palette(20, 220, n=200),
+    square=True,
+    annot=True
+)
+ax.set_xticklabels(
+    ax.get_xticklabels(),
+    rotation=25,
+    horizontalalignment='center'
+)
+
+plt.figure(figsize=(20,20))
+sns.set(font_scale=0.8)
+ax = sns.heatmap(
+    granger_caus, 
+    vmin=0, vmax=1, center=0.1,
+    cmap=sns.diverging_palette(20, 220, n=200),
+    square=True,
+    annot=True
+)
+ax.set_xticklabels(
+    ax.get_xticklabels(),
+    rotation=25,
+    horizontalalignment='center'
+)
+#plt.switch_backend('Qt4Agg')
+#figM = plt.get_current_fig_manager()
+#figM.window.showMaximized()
+plt.savefig('test_graph1.png')
+plt.show()
+
+#granger causation is different from a correlation matrix
+corr_matrix = df2.corr()
+
+
+##########################################################################################
+#making function to do the granger causation matrix for all the states
+
+state_list = ['AL', 'CA', 'FL', 'GA', 'IA', 'MA', 'NC', 'NY', 'TX', 'UT', 'WI']
+
+these_vars_loop = ['DoorDash', 'UberEats', 'Grubhub', 'Instacart', 'AmazonFresh', 'Shipt',
+                   'Retail_Recreation', 'Grocery_Pharmacy ']
+
+for i in state_list:
+    this_state_df = pd.read_excel(i+'.xlsx')
+    this_state_df_filtered = this_state_df.loc[:,these_vars_loop]
+    this_granger_caus = grangers_causation_matrix(this_state_df_filtered,
+                                                  variables = this_state_df_filtered.columns).round(3)
+    plt.figure(figsize=(20,20))
+    sns.set(font_scale=0.8)
+    ax = sns.heatmap(
+        this_granger_caus,
+        vmin=0, vmax=1, center=0.1,
+        cmap=sns.diverging_palette(20, 220, n=200),
+        square=True,
+        annot=True
+    )
+    ax.set_xticklabels(
+        ax.get_xticklabels(),
+        rotation=25,
+        horizontalalignment='center'
+    )
+    this_graph_name = i+'_causation_graph.png'
+    plt.savefig(this_graph_name)
+    
+
+##########################################################################################
+
+#cointegration test
+
+def cointegration_test(df, alpha=0.05): 
+    """Perform Johanson's Cointegration Test and Report Summary"""
+    out = coint_johansen(df,-1,5)
+    d = {'0.90':0, '0.95':1, '0.99':2}
+    traces = out.lr1
+    cvts = out.cvt[:, d[str(1-alpha)]]
+    def adjust(val, length= 6): return str(val).ljust(length)
+
+    # Summary
+    print('Name   ::  Test Stat > C(95%)    =>   Signif  \n', '--'*20)
+    for col, trace, cvt in zip(df.columns, traces, cvts):
+        print(adjust(col), ':: ', adjust(round(trace,2), 9), ">", adjust(cvt, 8), ' =>  ' , trace > cvt)
+
+coint_test = cointegration_test(df2)
+
+
+#train and test split
+
+nobs = 4
+df_train, df_test = df2[0:-nobs], df2[-nobs:]
+
+# Check size
+print(df_train.shape)
+print(df_test.shape)
+
+
+
+#checking if the series are stationary with the adf test
+
+def adfuller_test(series, signif=0.05, name='', verbose=False):
+    """Perform ADFuller to test for Stationarity of given series and print report"""
+    r = adfuller(series, autolag='AIC')
+    output = {'test_statistic':round(r[0], 4), 'pvalue':round(r[1], 4), 'n_lags':round(r[2], 4), 'n_obs':r[3]}
+    p_value = output['pvalue'] 
+    def adjust(val, length= 6): return str(val).ljust(length)
+
+    # Print Summary
+    print(f'    Augmented Dickey-Fuller Test on "{name}"', "\n   ", '-'*47)
+    print(f' Null Hypothesis: Data has unit root. Non-Stationary.')
+    print(f' Significance Level    = {signif}')
+    print(f' Test Statistic        = {output["test_statistic"]}')
+    print(f' No. Lags Chosen       = {output["n_lags"]}')
+
+    for key,val in r[4].items():
+        print(f' Critical value {adjust(key)} = {round(val, 3)}')
+
+    if p_value <= signif:
+        print(f" => P-Value = {p_value}. Rejecting Null Hypothesis.")
+        print(f" => Series is Stationary.")
+    else:
+        print(f" => P-Value = {p_value}. Weak evidence to reject the Null Hypothesis.")
+        print(f" => Series is Non-Stationary.")
+
+#having made the function we call the series on each variable
+        
+for name, column in df_train.iteritems():
+    adfuller_test(column, name=column.name)
+    print('\n')
+    
+#since there is at least one non stationary series we difference the whole df and run the function again
+    
+df_differenced = df_train.diff().dropna()
+
+for name, column in df_differenced.iteritems():
+    adfuller_test(column, name=column.name)
+    print('\n')
+    
+#since some are still non stationary we difference again and run the test again
+    
+df_differenced2 = df_differenced.diff().dropna()
+
+for name, column in df_differenced2.iteritems():
+    adfuller_test(column, name=column.name)
+    print('\n')
+    
+#doesn't make all the series stationary, so let's use the 1st differenced series
+    
+#fitting various var models and choosing the best one from a big list
+    
+model = VAR(df_differenced)
+for i in [1,2,3,5,6,7,8,9]:
+    result = model.fit(i)
+    print('Lag Order =', i)
+    print('AIC : ', result.aic)
+    print('BIC : ', result.bic)
+    print('FPE : ', result.fpe)
+    print('HQIC: ', result.hqic, '\n')
+    
+#aic is the lowest at 5, then increases and drops thereafter
+#however after lag 4 (which doesn't work) there seem to be some erros
+#thus let's use lag 3
+    
+#fitting a model with lag 3
+    
+model_fitted = model.fit(3)
+model_fitted.summary()
+
+#checking for serial correlation (if we missed in explaining some pattern)
+
+out = durbin_watson(model_fitted.resid)
+
+for col, val in zip(df2.columns, out):
+    def adjust(val, length= 6): return str(val).ljust(length)
+    print(adjust(col), ':', round(val, 2))
+    
+    
+
+#forecasting
+    
+    
+lag_order = model_fitted.k_ar
+print(lag_order)
+
+# Input data for forecasting
+forecast_input = df_differenced.values[-lag_order:]
+forecast_input
+
+fc = model_fitted.forecast(y=forecast_input, steps=nobs)
+df_forecast = pd.DataFrame(fc, index=df2.index[-nobs:], columns=df2.columns + '_1d')
+df_forecast
+
+#transform back to the original numbers
+
+def invert_transformation(df_train, df_forecast, second_diff=False):
+    """Revert back the differencing to get the forecast to original scale."""
+    df_fc = df_forecast.copy()
+    columns = df_train.columns
+    for col in columns:        
+        # Roll back 2nd Diff
+        if second_diff:
+            df_fc[str(col)+'_1d'] = (df_train[col].iloc[-1]-df_train[col].iloc[-2]) + df_fc[str(col)+'_2d'].cumsum()
+        # Roll back 1st Diff
+        df_fc[str(col)+'_forecast'] = df_train[col].iloc[-1] + df_fc[str(col)+'_1d'].cumsum()
+    return df_fc
+
+df_results = invert_transformation(df_train, df_forecast, second_diff=False)
+
+df_results.index.name = None
+
+#plotting the forecasts
+
+
+fig, axes = plt.subplots(nrows=int(len(df2.columns[:-4])/2), ncols=2, dpi=75, figsize=(20,20))
+for i, (col,ax) in enumerate(zip(df2.columns[:-4], axes.flatten())):
+    df_results[col+'_forecast'].plot(legend=True, ax=ax).autoscale(axis='x',tight=True)
+    df_test[col][-nobs:].plot(legend=True, ax=ax);
+    ax.set_title(col + ": Forecast vs Actuals")
+    ax.xaxis.set_ticks_position('none')
+    ax.yaxis.set_ticks_position('none')
+    ax.spines["top"].set_alpha(0)
+    ax.tick_params(labelsize=6)
+    ax.legend(loc=2, prop={'size': 6})
+
+plt.tight_layout();
