@@ -1,0 +1,86 @@
+Importing the data
+
+```{r}
+library(readxl)
+UT <- read_excel("~...UT.xlsx")
+```
+
+writing the function
+
+```{r}
+rolling_centrality <- function(df, w_size, s_size, dep, indep, control_t_f, control_which){
+  #w_size is the window size
+  #s_size is the step size
+  
+  if(control_t_f==T){
+    reg_df <- df[,c(dep, indep, control_which)]
+    colnames(reg_df) <- c('dep', 'indep', 'control')
+  }else{
+    reg_df <- df[,c(dep, indep)]
+    colnames(reg_df) <- c('dep', 'indep')
+  }
+  
+  this_seq <- seq(1,nrow(df), by=s_size)
+  
+  beta_list <- c()
+  
+  for(i in this_seq){
+    if((i+w_size-1) <=nrow(df)){
+      this_df <- reg_df[i:(i+w_size-1),]
+      this_reg <- lm(dep~., data=this_df)
+      beta_list <- c(beta_list, summary(this_reg)$coefficients[2,1])
+      }else{
+      break
+      }
+  }
+  return(beta_list)
+}
+
+test_rolling_reg <- rolling_centrality(UT, 7, 1, 'US-UT DoorDash', 'Grocery and Phamacy',
+                                       T, 'Cases')
+
+```
+
+plotting the rolling regression beta
+
+```{r}
+index_df <- c(1:length(test_rolling_reg))
+rolling_reg_df <- as.data.frame(x=test_rolling_reg)
+rolling_reg_df$x_axis <- index_df
+colnames(rolling_reg_df) <- c('beta', 'x_axis')
+
+ggplot(data=rolling_reg_df, aes(x=x_axis, y=beta, group=1)) +
+  geom_line()
+```
+
+applying the rolling regression to various combinations
+let's always focus on doordash
+
+
+using doordash with retail and control (cases)
+```{r}
+dd_retail_control <- rolling_centrality(UT, 7, 1, 'US-UT DoorDash', 'Retail and Recreation',
+                                        T, 'Cases')
+
+index_df <- c(1:length(dd_retail_control))
+dd_retail_control_df <- as.data.frame(x=dd_retail_control)
+dd_retail_control_df$x_axis <- index_df
+colnames(dd_retail_control_df) <- c('beta', 'x_axis')
+
+ggplot(data=dd_retail_control_df, aes(x=x_axis, y=beta, group=1)) +
+  geom_line() + geom_smooth()
+```
+
+doordash with retail but no control
+```{r}
+dd_retail_no_control <- rolling_centrality(UT, 7, 1, 'US-UT DoorDash', 'Retail and Recreation',
+                                        F, 'Cases')
+
+index_df <- c(1:length(dd_retail_no_control))
+dd_retail_no_control_df <- as.data.frame(x=dd_retail_no_control)
+dd_retail_no_control_df$x_axis <- index_df
+colnames(dd_retail_no_control_df) <- c('beta', 'x_axis')
+
+ggplot(data=dd_retail_no_control_df, aes(x=x_axis, y=beta, group=1)) +
+  geom_line() + geom_smooth()
+```
