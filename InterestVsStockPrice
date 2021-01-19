@@ -1,0 +1,49 @@
+#interst compared to stock price
+
+import pandas as pd
+from pytrends.request import TrendReq
+from sklearn.preprocessing import MinMaxScaler
+
+
+interest = pd.read_excel('grubhub_interest_2020.xlsx', index_col=0)
+price = pd.read_csv('GRUB.csv', index_col=0)
+price.loc[:,'Adj Close'][:-1]
+
+int_close = interest.copy()
+int_close['Adj_Close'] = price.loc[:,'Adj Close'][:-1].values
+
+int_close.corr()
+
+#starbucks
+pytrends = TrendReq()
+pytrends.build_payload(['Starbucks'], cat=0, timeframe='2019-01-01 2020-12-31', geo='US', gprop='')
+interest_sb = pytrends.interest_over_time().iloc[:,0:1]
+price_sb = pd.read_csv('SBUX.csv')
+df_sb = interest_sb.copy()
+df_sb['price'] = price_sb.loc[:,'Adj Close'][:-1].values
+df_sb.corr()
+
+
+#walmart
+pytrends = TrendReq()
+pytrends.build_payload(['Walmart'], cat=0, timeframe='2019-01-01 2020-12-31', geo='US', gprop='')
+interest_wm = pytrends.interest_over_time().iloc[:,0:1]
+price_wm = pd.read_csv('WMT.csv')
+df_wm = interest_wm.copy()
+df_wm['price'] = price_wm.loc[:,'Adj Close'][:-1].values
+df_wm.corr()
+
+
+#minmax scaling
+
+scaler_sb = MinMaxScaler()
+scaler_sb.fit(df_sb)
+df_sb_mm = pd.DataFrame(scaler_sb.transform(df_sb), index=df_sb.index, columns=['Interest', 'Price'])
+df_sb_mm.index.name = None
+df_sb_mm.plot(title='Starbucks (correlation = 0.483)')
+
+scaler_wm = MinMaxScaler()
+scaler_wm.fit(df_wm)
+df_wm_mm = pd.DataFrame(scaler_wm.transform(df_wm), index=df_wm.index, columns=['Interest', 'Price'])
+df_wm_mm.index.name = None
+df_wm_mm.plot(title='Walmart (correlation = 0.514)')
